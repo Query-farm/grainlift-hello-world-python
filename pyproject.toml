@@ -33,8 +33,7 @@ include = ["/src", "/tests", "/README.md", "/LICENSE", "/pyproject.toml"]
 dev = ["pytest>=8", "ruff>=0.11"]
 
 [tool.uv.sources]
-grainlift-python = { git = "https://github.com/Query-farm/grainlift-python.git", rev = "056ea119b795d49d13ce52773d8f95af0af0925c" }
-vgi-rpc = { git = "https://github.com/Query-farm/vgi-rpc-python.git", rev = "d0ee383502fcdf57200c24181dbeda13ac11807e" }
+grainlift-python = { git = "https://github.com/Query-farm/grainlift-python.git", rev = "7a4a273866382cd0589d654e2015030372844a2f" }
 
 [tool.ruff]
 line-length = 100
