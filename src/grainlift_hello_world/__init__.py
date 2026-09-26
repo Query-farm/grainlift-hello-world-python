@@ -5,9 +5,21 @@
 import argparse
 import os
 import re
+import signal
+import threading
 
 import pyarrow as pa
-from grainlift import AdbcError, Connection, QueryResult, Worker, serve
+from grainlift import (
+    AdbcError,
+    Connection,
+    QueryResult,
+    Service,
+    TcpServer,
+    TLSConfig,
+    Worker,
+    serve,
+    serve_granian,
+)
 
 HELLO_SCHEMA = pa.schema([("message", pa.string())])
 NUMBERS_SCHEMA = pa.schema([("number", pa.int64())])
@@ -58,8 +70,28 @@ class HelloWorker(Worker):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8080)
+    parser.add_argument("--host", choices=("waitress", "granian", "mtls"), default="waitress")
+    parser.add_argument("--tls-cert")
+    parser.add_argument("--tls-key")
+    parser.add_argument("--client-ca")
+    parser.add_argument("--client-uri")
     args = parser.parse_args()
+    if args.host == "mtls":
+        if not all((args.tls_cert, args.tls_key, args.client_ca, args.client_uri)):
+            parser.error("mTLS requires --tls-cert, --tls-key, --client-ca and --client-uri")
+        stop = threading.Event()
+        signal.signal(signal.SIGTERM, lambda *_: stop.set())
+        signal.signal(signal.SIGINT, lambda *_: stop.set())
+        tls = TLSConfig(args.tls_cert, args.tls_key, args.client_ca, {args.client_uri: "developer"})
+        with TcpServer(Service(HelloWorker()), port=args.port, tls=tls):
+            stop.wait()
+        return
     token = os.environ.get("GRAINLIFT_TOKEN")
     if not token:
         parser.error("Set GRAINLIFT_TOKEN to a development bearer token")
-    serve(HelloWorker(), token=token, port=args.port)
+    if args.host == "granian":
+        serve_granian(
+            "grainlift_hello_world:HelloWorker", tokens={token: "developer"}, port=args.port
+        )
+    else:
+        serve(HelloWorker(), token=token, port=args.port)

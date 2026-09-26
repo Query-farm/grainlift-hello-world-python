@@ -3,7 +3,11 @@
 """Real C-ABI coverage; no Python VGI client substitutes for the native driver."""
 
 import os
+import socket
+import subprocess
+import sys
 import threading
+import time
 from pathlib import Path
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
@@ -83,6 +87,52 @@ def test_authentication_required(endpoint):
     with pytest.raises(manager.Error):
         connect(url, "wrong-token")
     assert not service._sessions
+
+
+def test_granian_cli_through_native_adbc():
+    """Run the public CLI and its child-side factory through real ADBC."""
+    with socket.socket() as reservation:
+        reservation.bind(("127.0.0.1", 0))
+        port = reservation.getsockname()[1]
+    process = subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            "from grainlift_hello_world import main; main()",
+            "--host",
+            "granian",
+            "--port",
+            str(port),
+        ],
+        env={**os.environ, "GRAINLIFT_TOKEN": "test-token"},
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    try:
+        deadline = time.monotonic() + 15
+        while True:
+            assert process.poll() is None
+            try:
+                with socket.create_connection(("127.0.0.1", port), timeout=0.2):
+                    break
+            except OSError:
+                assert time.monotonic() < deadline
+                time.sleep(0.05)
+        with connect(f"http://127.0.0.1:{port}") as connection, connection.cursor() as cursor:
+            cursor.execute("SELECT 'Hello, world!' AS message")
+            assert cursor.fetch_arrow_table().to_pydict() == {"message": ["Hello, world!"]}
+            cursor.execute("SELECT * FROM numbers(2500)")
+            assert [batch.num_rows for batch in cursor.fetch_record_batch()] == [1024, 1024, 452]
+        process.terminate()
+        assert process.wait(timeout=20) == 0
+    finally:
+        if process.poll() is None:
+            process.terminate()
+        try:
+            process.communicate(timeout=20)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.communicate(timeout=5)
 
 
 @pytest.mark.parametrize("details", [{}, {"binary": b"\x00\xff"}])

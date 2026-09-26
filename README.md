@@ -5,10 +5,9 @@ The application uses the normal Grainlift native ADBC driver. The server uses
 neither a downstream ADBC driver nor a SQL engine.
 
 Requires Python 3.13+, uv, and Rust 1.97+ to build the native driver. The lockfile
-pins public Git revisions of the [toolkit](https://github.com/Query-farm/grainlift-python)
-and [VGI-RPC](https://github.com/Query-farm/vgi-rpc-python), including the required
-Arrow schema and structured-error support. Their package-index publication is a
-separate release step; do not substitute registry VGI-RPC 0.47.1 for this pin.
+pins a public Git revision of the [toolkit](https://github.com/Query-farm/grainlift-python).
+The toolkit uses the published VGI-RPC 0.47.1 runtime; no modified VGI runtime is
+required. SDK package-index publication remains a separate release step.
 
 Clone this repository, then build the ordinary Grainlift client driver:
 
@@ -21,7 +20,7 @@ Clone this repository, then build the ordinary Grainlift client driver:
 Start the worker:
 
     export GRAINLIFT_TOKEN=local-development-token
-    uv run grainlift-hello-world
+    uv run grainlift-hello-world --host granian
 
 In another terminal, from this directory:
 
@@ -31,6 +30,29 @@ In another terminal, from this directory:
 
 On Linux use libadbc_driver_grainlift.so; on Windows use adbc_driver_grainlift.dll.
 GRAINLIFT_ENDPOINT defaults to http://127.0.0.1:8080; --port changes the worker port.
+`--host waitress` retains the original development host and remains the CLI
+default. Granian runs one serving process and drains on SIGTERM/SIGINT.
+
+For verified TCP/mTLS, supply your server chain, key, client CA and authorized
+client certificate URI SAN:
+
+    uv run grainlift-hello-world --host mtls --port 8443 \
+      --tls-cert server.pem --tls-key server-key.pem \
+      --client-ca clients-ca.pem --client-uri spiffe://example.org/client
+
+The native client then uses:
+
+    export GRAINLIFT_ENDPOINT=tls+tcp://127.0.0.1:8443
+    export GRAINLIFT_TLS_CA=server-ca.pem
+    export GRAINLIFT_TLS_CERT=client.pem
+    export GRAINLIFT_TLS_KEY=client-key.pem
+    export GRAINLIFT_TLS_SERVER_NAME=localhost
+    uv run grainlift-hello-client
+
+Use the actual DNS name in your server certificate for `GRAINLIFT_TLS_SERVER_NAME`.
+The mTLS example stays on loopback and requires no bearer token. SIGTERM/SIGINT
+drains its listener and closes the owned service. Configure remote exposure and
+resource limits in an application using the SDK's hosting APIs.
 
 Expected output:
 
@@ -62,5 +84,5 @@ CI builds a reviewed native-driver revision and sets this variable on
 Linux/macOS with Python 3.13/3.14, exercising the installed example wheel and all
 native tests. Consult Actions results for the revision being deployed; workflow
 configuration alone does not establish a passing matrix.
-Only authenticated loopback HTTP is validated. This is a development example,
-with the limitations and resource/security contract in the toolkit README.
+This is a development example. The SDK documents its supported hosts, lifecycle
+limits and security contract in [HOSTING.md](https://github.com/Query-farm/grainlift-python/blob/main/docs/HOSTING.md).

@@ -5,7 +5,7 @@ description = "A Python-authored ADBC hello-world service"
 requires-python = ">=3.13"
 license = "Apache-2.0"
 readme = "README.md"
-dependencies = ["grainlift-python", "adbc-driver-manager>=1.7"]
+dependencies = ["grainlift-python[granian]", "adbc-driver-manager>=1.7"]
 
 [project.scripts]
 grainlift-hello-world = "grainlift_hello_world:main"
@@ -33,7 +33,7 @@ include = ["/src", "/tests", "/README.md", "/LICENSE", "/pyproject.toml"]
 dev = ["pytest>=8", "ruff>=0.11"]
 
 [tool.uv.sources]
-grainlift-python = { git = "https://github.com/Query-farm/grainlift-python.git", rev = "9ca8f3621320bd19c93afe243fbf3f523872c763" }
+grainlift-python = { git = "https://github.com/Query-farm/grainlift-python.git", rev = "05e84a5b75cde760cd0f6554fe4c372671bd80df" }
 
 [tool.ruff]
 line-length = 100

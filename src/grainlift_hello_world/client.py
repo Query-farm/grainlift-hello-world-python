@@ -9,15 +9,24 @@ import adbc_driver_manager.dbapi as adbc
 
 
 def main():
+    endpoint = os.environ.get("GRAINLIFT_ENDPOINT", "http://127.0.0.1:8080")
+    options = {"grainlift.uri": endpoint, "grainlift.target": "hello"}
+    if endpoint.startswith("tls+tcp://"):
+        options.update(
+            {
+                "grainlift.tls.ca": os.environ["GRAINLIFT_TLS_CA"],
+                "grainlift.tls.cert": os.environ["GRAINLIFT_TLS_CERT"],
+                "grainlift.tls.key": os.environ["GRAINLIFT_TLS_KEY"],
+                "grainlift.tls.server_name": os.environ["GRAINLIFT_TLS_SERVER_NAME"],
+            }
+        )
+    else:
+        options["grainlift.auth.bearer_token"] = os.environ["GRAINLIFT_TOKEN"]
     with (
         adbc.connect(
             driver=Path(os.environ["GRAINLIFT_DRIVER"]).expanduser().resolve(strict=True),
             entrypoint="AdbcDriverGrainliftInit",
-            db_kwargs={
-                "grainlift.uri": os.environ.get("GRAINLIFT_ENDPOINT", "http://127.0.0.1:8080"),
-                "grainlift.target": "hello",
-                "grainlift.auth.bearer_token": os.environ["GRAINLIFT_TOKEN"],
-            },
+            db_kwargs=options,
             autocommit=True,
         ) as connection,
         connection.cursor() as cursor,
