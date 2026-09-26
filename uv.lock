@@ -182,7 +182,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "adbc-driver-manager", specifier = ">=1.7" },
-    { name = "grainlift-python", git = "https://github.com/Query-farm/grainlift-python.git?rev=127afc36e5f980814ee5a7536ca05fe43c9d3656" },
+    { name = "grainlift-python", git = "https://github.com/Query-farm/grainlift-python.git?rev=056ea119b795d49d13ce52773d8f95af0af0925c" },
 ]
 
 [package.metadata.requires-dev]
@@ -194,7 +194,7 @@ dev = [
 [[package]]
 name = "grainlift-python"
 version = "0.1.0"
-source = { git = "https://github.com/Query-farm/grainlift-python.git?rev=127afc36e5f980814ee5a7536ca05fe43c9d3656#127afc36e5f980814ee5a7536ca05fe43c9d3656" }
+source = { git = "https://github.com/Query-farm/grainlift-python.git?rev=056ea119b795d49d13ce52773d8f95af0af0925c#056ea119b795d49d13ce52773d8f95af0af0925c" }
 dependencies = [
     { name = "pyarrow" },
     { name = "vgi-rpc", extra = ["http"] },
@@ -542,7 +542,7 @@ wheels = [
 [[package]]
 name = "vgi-rpc"
 version = "0.47.1"
-source = { git = "https://github.com/Query-farm/vgi-rpc-python.git?rev=cf0564f0ea9780ffbbff18995b3d027d3aa41d75#cf0564f0ea9780ffbbff18995b3d027d3aa41d75" }
+source = { git = "https://github.com/Query-farm/vgi-rpc-python.git?rev=d0ee383502fcdf57200c24181dbeda13ac11807e#d0ee383502fcdf57200c24181dbeda13ac11807e" }
 dependencies = [
     { name = "docstring-parser" },
     { name = "pyarrow" },

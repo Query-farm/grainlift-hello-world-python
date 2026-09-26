@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: Query-farm/grainlift
-          ref: d81c8b5766cf107ab57a15b36d10feba321afa52
+          ref: fc04e1fbdb36edc3e84b7c442899bcce5f5a2c34
           path: native-driver
           persist-credentials: false
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
