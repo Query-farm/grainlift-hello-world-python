@@ -9,7 +9,9 @@ import sys
 import threading
 import time
 from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
 import adbc_driver_manager as manager
@@ -30,15 +32,18 @@ class QuietHandler(WSGIRequestHandler):
         pass
 
 
-@pytest.fixture
-def endpoint() -> Iterator[tuple[str, Service]]:
+@contextmanager
+def serving(**access: Any) -> Iterator[tuple[str, Service]]:
     """Serve the hello worker over HTTP on an ephemeral port.
+
+    Args:
+        **access: Service.app access configuration (tokens and/or anonymous_principal).
 
     Yields:
         The endpoint URL and the backing service.
     """
     with Service(HelloWorker()) as service:
-        app = service.app(tokens={"test-token": "alice", "other-token": "bob"})
+        app = service.app(**access)
         server = make_server("127.0.0.1", 0, app, handler_class=QuietHandler)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
@@ -50,24 +55,45 @@ def endpoint() -> Iterator[tuple[str, Service]]:
             thread.join(timeout=2)
 
 
-def connect(endpoint: str, token: str = "test-token") -> adbc.Connection:
+@pytest.fixture
+def endpoint() -> Iterator[tuple[str, Service]]:
+    """Serve with bearer tokens only.
+
+    Yields:
+        The endpoint URL and the backing service.
+    """
+    with serving(tokens={"test-token": "alice", "other-token": "bob"}) as served:
+        yield served
+
+
+@pytest.fixture
+def anonymous_endpoint() -> Iterator[tuple[str, Service]]:
+    """Serve anonymous clients as ``public`` while still accepting one bearer token.
+
+    Yields:
+        The endpoint URL and the backing service.
+    """
+    with serving(tokens={"test-token": "alice"}, anonymous_principal="public") as served:
+        yield served
+
+
+def connect(endpoint: str, token: str | None = "test-token") -> adbc.Connection:
     """Connect to an endpoint through the native Grainlift ADBC driver.
 
     Args:
         endpoint: The service URL.
-        token: The bearer token to authenticate with.
+        token: The bearer token to authenticate with, or None to connect anonymously.
 
     Returns:
         An autocommit DB-API connection.
     """
+    options = {"grainlift.uri": endpoint, "grainlift.target": "hello"}
+    if token is not None:
+        options["grainlift.auth.bearer_token"] = token
     return adbc.connect(
         driver=Path(os.environ["GRAINLIFT_DRIVER"]).resolve(strict=True),
         entrypoint="AdbcDriverGrainliftInit",
-        db_kwargs={
-            "grainlift.uri": endpoint,
-            "grainlift.target": "hello",
-            "grainlift.auth.bearer_token": token,
-        },
+        db_kwargs=options,
         autocommit=True,
     )
 
@@ -108,16 +134,49 @@ def test_real_adbc_queries_schema_errors_and_cleanup(endpoint: tuple[str, Servic
     assert not service._sessions
 
 
-def test_authentication_required(endpoint: tuple[str, Service]) -> None:
-    """A wrong bearer token is rejected before a session is opened."""
+@pytest.mark.parametrize("token", ["wrong-token", None])
+def test_authentication_required(endpoint: tuple[str, Service], token: str | None) -> None:
+    """A wrong or missing bearer token is rejected before a session is opened."""
     url, service = endpoint
+    with pytest.raises(manager.Error):
+        connect(url, token)
+    assert not service._sessions
+
+
+def test_anonymous_client_queries_without_a_token(anonymous_endpoint: tuple[str, Service]) -> None:
+    """With anonymous access enabled, the native driver needs no bearer token, even across continuations."""
+    url, service = anonymous_endpoint
+    with connect(url, None) as connection, connection.cursor() as cursor:
+        cursor.execute("SELECT 'Hello, world!' AS message")
+        assert cursor.fetch_arrow_table().to_pydict() == {"message": ["Hello, world!"]}
+        cursor.execute("SELECT * FROM numbers(2500)")
+        assert [batch.num_rows for batch in cursor.fetch_record_batch()] == [1024, 1024, 452]
+        cursor.execute("SELECT * FROM running_total(2500)")
+        assert cursor.fetch_arrow_table().column("total")[-1].as_py() == 2499 * 2500 // 2
+        assert [session.principal for session in service._sessions.values()] == ["public"]
+    assert not service._sessions
+
+
+def test_anonymous_endpoint_still_authenticates_tokens(anonymous_endpoint: tuple[str, Service]) -> None:
+    """Token clients keep their own principal, and a wrong token is rejected rather than treated as anonymous."""
+    url, service = anonymous_endpoint
+    with connect(url) as alice, connect(url, None) as anonymous:
+        assert sorted(session.principal for session in service._sessions.values()) == ["alice", "public"]
+        for connection in (alice, anonymous):
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT * FROM numbers(3)")
+                assert cursor.fetch_arrow_table().column("number").to_pylist() == [0, 1, 2]
     with pytest.raises(manager.Error):
         connect(url, "wrong-token")
     assert not service._sessions
 
 
-def test_granian_cli_through_native_adbc() -> None:
-    """Run the public CLI and its child-side factory through real ADBC."""
+@pytest.mark.parametrize("token", ["test-token", None])
+def test_granian_cli_through_native_adbc(token: str | None) -> None:
+    """Run the public CLI and its child-side factory through real ADBC, with an exported token or anonymously."""
+    environment = {key: value for key, value in os.environ.items() if key != "GRAINLIFT_TOKEN"}
+    if token is not None:
+        environment["GRAINLIFT_TOKEN"] = token
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
@@ -131,7 +190,7 @@ def test_granian_cli_through_native_adbc() -> None:
             "--port",
             str(port),
         ],
-        env={**os.environ, "GRAINLIFT_TOKEN": "test-token"},
+        env=environment,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -145,7 +204,7 @@ def test_granian_cli_through_native_adbc() -> None:
             except OSError:
                 assert time.monotonic() < deadline
                 time.sleep(0.05)
-        with connect(f"http://127.0.0.1:{port}") as connection, connection.cursor() as cursor:
+        with connect(f"http://127.0.0.1:{port}", token) as connection, connection.cursor() as cursor:
             cursor.execute("SELECT 'Hello, world!' AS message")
             assert cursor.fetch_arrow_table().to_pydict() == {"message": ["Hello, world!"]}
             cursor.execute("SELECT * FROM numbers(2500)")

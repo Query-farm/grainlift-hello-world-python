@@ -18,12 +18,13 @@ Start the service:
 
     uv run grainlift-hello-world
 
-It prints a generated bearer token (set `GRAINLIFT_TOKEN` yourself to choose
-one). In a second terminal, export that token and run the ADBC client:
+In a second terminal, run the ADBC client:
 
-    export GRAINLIFT_TOKEN=<printed token>
     export GRAINLIFT_DRIVER=../grainlift/target/debug/libadbc_driver_grainlift.dylib  # .so on Linux
     uv run grainlift-hello-client
+
+No credentials are needed. The service is read-only, so it accepts anonymous
+clients (see [Authentication](#authentication)).
 
 Expected output:
 
@@ -65,6 +66,23 @@ freely within one service.
 Pick a producer when the state is small and serializable, such as offsets,
 keyset cursors or counters. Pick a generator when it isn't.
 
+## Authentication
+
+Anonymous access is opt-in in grainlift-python. This example enables it because
+it only serves public, read-only data: its `main()` calls
+`grainlift.cli.run(..., auth="anonymous")`. Requests without credentials act as
+the shared `anonymous` principal.
+
+- Set `GRAINLIFT_TOKEN` on both sides to connect as an authenticated principal
+  instead. A client that sends a wrong token is rejected, never downgraded to
+  anonymous.
+- Run `uv run grainlift-hello-world --auth token` to require a token. The server
+  prints a generated token when `GRAINLIFT_TOKEN` is unset.
+
+For a service that can write data or expose private data, keep the default
+token authentication. In your own hosting code, anonymous access is
+`Service.app(anonymous_principal="anonymous")`, optionally alongside `tokens=`.
+
 ## Hosting options
 
 `uv run grainlift-hello-world --help` lists them. The same command-line host is
@@ -72,7 +90,7 @@ available for any worker as `grainlift serve module:Factory`.
 
 - `--host waitress` (default): loopback HTTP for development.
 - `--host granian`: supervised loopback HTTP that drains on SIGTERM/SIGINT.
-- `--host mtls`: verified TCP/mTLS; no bearer token needed.
+- `--host mtls`: verified TCP/mTLS; client certificates identify callers.
 - `--port`: listening port (default 8080). Point the client at a different
   port with `GRAINLIFT_ENDPOINT`.
 

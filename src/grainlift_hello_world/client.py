@@ -11,8 +11,8 @@ import adbc_driver_manager.dbapi as adbc
 def main() -> None:
     """Connect through the native ADBC driver and run the example queries.
 
-    Configure with GRAINLIFT_DRIVER (path to the native driver library), GRAINLIFT_TOKEN
-    (printed by the server when it generates one), and optionally GRAINLIFT_ENDPOINT.
+    Configure with GRAINLIFT_DRIVER (path to the native driver library) and optionally
+    GRAINLIFT_ENDPOINT and GRAINLIFT_TOKEN (omit it to connect anonymously).
     """
     endpoint = os.environ.get("GRAINLIFT_ENDPOINT", "http://127.0.0.1:8080")
     options = {"grainlift.uri": endpoint, "grainlift.target": "hello"}
@@ -25,8 +25,8 @@ def main() -> None:
                 "grainlift.tls.server_name": os.environ["GRAINLIFT_TLS_SERVER_NAME"],
             }
         )
-    else:
-        options["grainlift.auth.bearer_token"] = os.environ["GRAINLIFT_TOKEN"]
+    elif token := os.environ.get("GRAINLIFT_TOKEN"):
+        options["grainlift.auth.bearer_token"] = token
     with (
         adbc.connect(
             driver=Path(os.environ["GRAINLIFT_DRIVER"]).expanduser().resolve(strict=True),

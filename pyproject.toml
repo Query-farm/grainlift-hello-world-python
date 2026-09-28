@@ -33,7 +33,7 @@ include = ["/src", "/tests", "/README.md", "/LICENSE", "/pyproject.toml"]
 dev = ["pytest>=8", "ruff>=0.11", "mypy>=1.15", "pyarrow-stubs"]
 
 [tool.uv.sources]
-grainlift-python = { git = "https://github.com/Query-farm/grainlift-python.git", rev = "ff94cd78887a40e2d5f9aacb7ca15abed85d8ace" }
+grainlift-python = { git = "https://github.com/Query-farm/grainlift-python.git", rev = "80837083ca90efb8e3be58e2c0b305463da24e10" }
 
 [tool.ruff]
 line-length = 120
