@@ -9,7 +9,11 @@ import adbc_driver_manager.dbapi as adbc
 
 
 def main() -> None:
-    """Connect through the native ADBC driver and run the example queries."""
+    """Connect through the native ADBC driver and run the example queries.
+
+    Configure with GRAINLIFT_DRIVER (path to the native driver library), GRAINLIFT_TOKEN
+    (printed by the server when it generates one), and optionally GRAINLIFT_ENDPOINT.
+    """
     endpoint = os.environ.get("GRAINLIFT_ENDPOINT", "http://127.0.0.1:8080")
     options = {"grainlift.uri": endpoint, "grainlift.target": "hello"}
     if endpoint.startswith("tls+tcp://"):
@@ -39,6 +43,9 @@ def main() -> None:
         sizes = [batch.num_rows for batch in reader]
         print(f"numbers(2500): {sizes} rows per Arrow batch")
         assert sizes == [1024, 1024, 452]
+        cursor.execute("SELECT * FROM running_total(2500)")
+        table = cursor.fetch_arrow_table()
+        print(f"running_total(2500): last row {table.slice(table.num_rows - 1).to_pylist()[0]}")
         cursor.execute("SELECT * FROM numbers(0)")
         empty = cursor.fetch_arrow_table()
         print(f"Empty result: {empty.num_rows} rows, schema: {empty.schema}")

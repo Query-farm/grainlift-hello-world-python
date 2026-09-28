@@ -83,6 +83,15 @@ def test_real_adbc_queries_schema_errors_and_cleanup(endpoint: tuple[str, Servic
             batches = list(cursor.fetch_record_batch())
             assert [batch.num_rows for batch in batches] == [1024, 1024, 452]
             assert batches[-1].column(0)[-1].as_py() == 2499
+            cursor.execute("SELECT * FROM running_total(2500)")
+            batches = list(cursor.fetch_record_batch())
+            assert [batch.num_rows for batch in batches] == [1024, 1024, 452]
+            assert batches[-1].column("total")[-1].as_py() == 2499 * 2500 // 2
+            assert all(
+                result.producer is not None
+                for session in service._sessions.values()
+                for result in session.results.values()
+            )
             cursor.execute("SELECT * FROM numbers(0)")
             empty = cursor.fetch_arrow_table()
             assert empty.num_rows == 0

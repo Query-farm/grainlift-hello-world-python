@@ -261,7 +261,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "adbc-driver-manager", specifier = ">=1.7" },
-    { name = "grainlift-python", extras = ["granian"], git = "https://github.com/Query-farm/grainlift-python.git?rev=05e84a5b75cde760cd0f6554fe4c372671bd80df" },
+    { name = "grainlift-python", extras = ["granian"], git = "https://github.com/Query-farm/grainlift-python.git?rev=ff94cd78887a40e2d5f9aacb7ca15abed85d8ace" },
 ]
 
 [package.metadata.requires-dev]
@@ -275,7 +275,7 @@ dev = [
 [[package]]
 name = "grainlift-python"
 version = "0.1.0"
-source = { git = "https://github.com/Query-farm/grainlift-python.git?rev=05e84a5b75cde760cd0f6554fe4c372671bd80df#05e84a5b75cde760cd0f6554fe4c372671bd80df" }
+source = { git = "https://github.com/Query-farm/grainlift-python.git?rev=ff94cd78887a40e2d5f9aacb7ca15abed85d8ace#ff94cd78887a40e2d5f9aacb7ca15abed85d8ace" }
 dependencies = [
     { name = "pyarrow" },
     { name = "vgi-rpc", extra = ["http"] },
