@@ -8,28 +8,35 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Iterator
 from pathlib import Path
 from wsgiref.simple_server import WSGIRequestHandler, make_server
 
 import adbc_driver_manager as manager
 import adbc_driver_manager.dbapi as adbc
 import pytest
-from grainlift import AdbcError, Service
+from grainlift import AdbcError, QueryResult, Service
 
 from grainlift_hello_world import HelloConnection, HelloWorker
 
-pytestmark = pytest.mark.skipif(
-    not os.environ.get("GRAINLIFT_DRIVER"), reason="Set GRAINLIFT_DRIVER"
-)
+pytestmark = pytest.mark.skipif(not os.environ.get("GRAINLIFT_DRIVER"), reason="Set GRAINLIFT_DRIVER")
 
 
 class QuietHandler(WSGIRequestHandler):
-    def log_message(self, *args):
+    """WSGI request handler that suppresses access logging."""
+
+    def log_message(self, format: str, *args: object) -> None:
+        """Discard the log line."""
         pass
 
 
 @pytest.fixture
-def endpoint():
+def endpoint() -> Iterator[tuple[str, Service]]:
+    """Serve the hello worker over HTTP on an ephemeral port.
+
+    Yields:
+        The endpoint URL and the backing service.
+    """
     with Service(HelloWorker()) as service:
         app = service.app(tokens={"test-token": "alice", "other-token": "bob"})
         server = make_server("127.0.0.1", 0, app, handler_class=QuietHandler)
@@ -43,7 +50,16 @@ def endpoint():
             thread.join(timeout=2)
 
 
-def connect(endpoint, token="test-token"):
+def connect(endpoint: str, token: str = "test-token") -> adbc.Connection:
+    """Connect to an endpoint through the native Grainlift ADBC driver.
+
+    Args:
+        endpoint: The service URL.
+        token: The bearer token to authenticate with.
+
+    Returns:
+        An autocommit DB-API connection.
+    """
     return adbc.connect(
         driver=Path(os.environ["GRAINLIFT_DRIVER"]).resolve(strict=True),
         entrypoint="AdbcDriverGrainliftInit",
@@ -56,7 +72,8 @@ def connect(endpoint, token="test-token"):
     )
 
 
-def test_real_adbc_queries_schema_errors_and_cleanup(endpoint):
+def test_real_adbc_queries_schema_errors_and_cleanup(endpoint: tuple[str, Service]) -> None:
+    """Queries, schema inference, errors and cursor cleanup work through real ADBC."""
     url, service = endpoint
     with connect(url) as connection:
         with connection.cursor() as cursor:
@@ -82,14 +99,15 @@ def test_real_adbc_queries_schema_errors_and_cleanup(endpoint):
     assert not service._sessions
 
 
-def test_authentication_required(endpoint):
+def test_authentication_required(endpoint: tuple[str, Service]) -> None:
+    """A wrong bearer token is rejected before a session is opened."""
     url, service = endpoint
     with pytest.raises(manager.Error):
         connect(url, "wrong-token")
     assert not service._sessions
 
 
-def test_granian_cli_through_native_adbc():
+def test_granian_cli_through_native_adbc() -> None:
     """Run the public CLI and its child-side factory through real ADBC."""
     with socket.socket() as reservation:
         reservation.bind(("127.0.0.1", 0))
@@ -136,10 +154,13 @@ def test_granian_cli_through_native_adbc():
 
 
 @pytest.mark.parametrize("details", [{}, {"binary": b"\x00\xff"}])
-def test_structured_adbc_error(endpoint, monkeypatch, details):
+def test_structured_adbc_error(
+    endpoint: tuple[str, Service], monkeypatch: pytest.MonkeyPatch, details: dict[str, bytes]
+) -> None:
+    """Structured AdbcError fields reach the ADBC client."""
     url, _ = endpoint
 
-    def fail(self, sql):
+    def fail(self: HelloConnection, sql: str) -> QueryResult:
         raise AdbcError(
             "Invalid data",
             "invalid_data",
@@ -156,4 +177,7 @@ def test_structured_adbc_error(endpoint, monkeypatch, details):
         # The current Rust ADBC 1.1 FFI exporter uses the vendor-code slot for
         # its private-data sentinel. The wire still carries 42; see toolkit README.
         assert exc.value.vendor_code is None
-        assert exc.value.details == [(key.encode(), data) for key, data in details.items()]
+        # adbc_driver_manager's stub types detail keys as str, but the runtime returns bytes.
+        assert exc.value.details == [  # type: ignore[comparison-overlap]
+            (key.encode(), data) for key, data in details.items()
+        ]

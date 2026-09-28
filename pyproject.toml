@@ -30,14 +30,45 @@ exclude = [
 include = ["/src", "/tests", "/README.md", "/LICENSE", "/pyproject.toml"]
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.11"]
+dev = ["pytest>=8", "ruff>=0.11", "mypy>=1.15", "pyarrow-stubs"]
 
 [tool.uv.sources]
 grainlift-python = { git = "https://github.com/Query-farm/grainlift-python.git", rev = "05e84a5b75cde760cd0f6554fe4c372671bd80df" }
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py313"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
+select = ["E", "F", "I", "UP", "B", "SIM", "D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pydoclint]
+# Docstring consistency gate (complements ruff's `D` rules, which only check
+# docstring *shape*, not whether documented args/attributes match the code).
+# pydoclint is not a project dependency; run it isolated:
+#   uvx pydoclint --config pyproject.toml src/ tests/
+style = "google"
+# Types live in signatures, not docstrings.
+arg_type_hints_in_docstring = false
+check_return_types = false
+check_yield_types = false
+check_class_attributes = true
+skip_checking_raises = true
+allow_init_docstring = true
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+# granian ships no stubs.
+module = "granian.*"
+ignore_missing_imports = true

@@ -7,6 +7,7 @@ import os
 import re
 import signal
 import threading
+from collections.abc import Iterator
 
 import pyarrow as pa
 from grainlift import (
@@ -28,7 +29,9 @@ BATCH_ROWS = 1024
 
 
 class HelloConnection(Connection):
-    def _query(self, sql):
+    """Connection that answers the hello-world and ``numbers(n)`` queries."""
+
+    def _query(self, sql: str) -> tuple[pa.Schema, int | None]:
         normalized = sql.strip().removesuffix(";").strip().lower()
         if normalized == "select 'hello, world!' as message":
             return HELLO_SCHEMA, None
@@ -36,19 +39,34 @@ class HelloConnection(Connection):
         if match and int(match[1]) <= MAX_NUMBERS:
             return NUMBERS_SCHEMA, int(match[1])
         raise AdbcError(
-            "Supported queries: SELECT 'Hello, world!' AS message; "
-            "SELECT * FROM numbers(n), where 0 <= n <= 100000",
+            "Supported queries: SELECT 'Hello, world!' AS message; SELECT * FROM numbers(n), where 0 <= n <= 100000",
             "invalid_arguments",
             sqlstate="42000",
         )
 
-    def execute_schema(self, sql):
+    def execute_schema(self, sql: str) -> pa.Schema:
+        """Return the result schema of a supported query without executing it.
+
+        Args:
+            sql: The query text.
+
+        Returns:
+            The Arrow schema the query would produce.
+        """
         return self._query(sql)[0]
 
-    def execute(self, sql):
+    def execute(self, sql: str) -> QueryResult:
+        """Execute a supported query and stream its rows in bounded batches.
+
+        Args:
+            sql: The query text.
+
+        Returns:
+            The result schema and a lazy batch iterator.
+        """
         schema, count = self._query(sql)
 
-        def batches():
+        def batches() -> Iterator[pa.RecordBatch]:
             if count is None:
                 yield pa.RecordBatch.from_pydict({"message": ["Hello, world!"]}, schema=schema)
             else:
@@ -61,13 +79,24 @@ class HelloConnection(Connection):
 
 
 class HelloWorker(Worker):
+    """Worker serving the ``hello`` target."""
+
     target = "hello"
 
-    def connect(self, principal):
+    def connect(self, principal: str) -> HelloConnection:
+        """Open a connection for an authenticated principal.
+
+        Args:
+            principal: The authenticated principal name.
+
+        Returns:
+            A new hello-world connection.
+        """
         return HelloConnection()
 
 
-def main():
+def main() -> None:
+    """Run the hello-world service using the selected hosting mode."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--host", choices=("waitress", "granian", "mtls"), default="waitress")
@@ -90,8 +119,6 @@ def main():
     if not token:
         parser.error("Set GRAINLIFT_TOKEN to a development bearer token")
     if args.host == "granian":
-        serve_granian(
-            "grainlift_hello_world:HelloWorker", tokens={token: "developer"}, port=args.port
-        )
+        serve_granian("grainlift_hello_world:HelloWorker", tokens={token: "developer"}, port=args.port)
     else:
         serve(HelloWorker(), token=token, port=args.port)

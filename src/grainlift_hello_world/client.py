@@ -8,7 +8,8 @@ from pathlib import Path
 import adbc_driver_manager.dbapi as adbc
 
 
-def main():
+def main() -> None:
+    """Connect through the native ADBC driver and run the example queries."""
     endpoint = os.environ.get("GRAINLIFT_ENDPOINT", "http://127.0.0.1:8080")
     options = {"grainlift.uri": endpoint, "grainlift.target": "hello"}
     if endpoint.startswith("tls+tcp://"):

@@ -42,6 +42,10 @@ jobs:
         run: |
           uv run --no-sync ruff check src tests
           uv run --no-sync ruff format --check src tests
+      - name: Type check (mypy)
+        run: uv run --no-sync mypy src tests
+      - name: Check docstrings (pydoclint)
+        run: uvx --python .venv/bin/python pydoclint --config pyproject.toml src/ tests/
       - name: Build the native ADBC driver
         working-directory: native-driver
         run: cargo build --locked -p adbc-driver-grainlift
