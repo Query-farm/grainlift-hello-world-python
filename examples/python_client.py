@@ -1,6 +1,10 @@
 # Copyright (c) 2026 Query Farm LLC
 # SPDX-License-Identifier: Apache-2.0
-"""Use the normal ADBC driver manager to query the Python service."""
+"""Query the hello-world service from Python with the ADBC driver manager.
+
+Set GRAINLIFT_DRIVER to the native driver library, start the service, then run
+``uv run examples/python_client.py``.
+"""
 
 import os
 from pathlib import Path
@@ -39,10 +43,8 @@ def main() -> None:
         cursor.execute("SELECT 'Hello, world!' AS message")
         print(cursor.fetch_arrow_table().to_pydict())
         cursor.execute("SELECT * FROM numbers(2500)")
-        reader = cursor.fetch_record_batch()
-        sizes = [batch.num_rows for batch in reader]
+        sizes = [batch.num_rows for batch in cursor.fetch_record_batch()]
         print(f"numbers(2500): {sizes} rows per Arrow batch")
-        assert sizes == [1024, 1024, 452]
         cursor.execute("SELECT * FROM running_total(2500)")
         table = cursor.fetch_arrow_table()
         print(f"running_total(2500): last row {table.slice(table.num_rows - 1).to_pylist()[0]}")

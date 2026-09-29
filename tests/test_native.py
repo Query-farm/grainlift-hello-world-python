@@ -19,7 +19,7 @@ import adbc_driver_manager.dbapi as adbc
 import pytest
 from grainlift import AdbcError, QueryResult, Service
 
-from grainlift_hello_world import HelloConnection, HelloWorker
+from grainlift_hello_world import HelloStatement, HelloWorker
 
 pytestmark = pytest.mark.skipif(not os.environ.get("GRAINLIFT_DRIVER"), reason="Set GRAINLIFT_DRIVER")
 
@@ -134,6 +134,18 @@ def test_real_adbc_queries_schema_errors_and_cleanup(endpoint: tuple[str, Servic
     assert not service._sessions
 
 
+def test_prepared_statements(endpoint: tuple[str, Service]) -> None:
+    """ADBC StatementPrepare, used by DuckDB's adbc_scanner before every scan, validates and then executes."""
+    url, _ = endpoint
+    with connect(url) as connection, connection.cursor() as cursor:
+        cursor.adbc_prepare("SELECT * FROM running_total(3)")
+        cursor.execute("SELECT * FROM running_total(3)")
+        assert cursor.fetch_arrow_table().column("total").to_pylist() == [0, 1, 3]
+        with pytest.raises(manager.ProgrammingError) as exc:
+            cursor.adbc_prepare("DROP TABLE x")
+        assert exc.value.sqlstate == "42000"
+
+
 @pytest.mark.parametrize("token", ["wrong-token", None])
 def test_authentication_required(endpoint: tuple[str, Service], token: str | None) -> None:
     """A wrong or missing bearer token is rejected before a session is opened."""
@@ -183,8 +195,8 @@ def test_granian_cli_through_native_adbc(token: str | None) -> None:
     process = subprocess.Popen(
         [
             sys.executable,
-            "-c",
-            "from grainlift_hello_world import main; main()",
+            "-m",
+            "grainlift_hello_world",
             "--host",
             "granian",
             "--port",
@@ -228,7 +240,7 @@ def test_structured_adbc_error(
     """Structured AdbcError fields reach the ADBC client."""
     url, _ = endpoint
 
-    def fail(self: HelloConnection, sql: str) -> QueryResult:
+    def fail(self: HelloStatement) -> QueryResult:
         raise AdbcError(
             "Invalid data",
             "invalid_data",
@@ -237,7 +249,7 @@ def test_structured_adbc_error(
             details=details,
         )
 
-    monkeypatch.setattr(HelloConnection, "execute", fail)
+    monkeypatch.setattr(HelloStatement, "execute", fail)
     with connect(url) as connection, connection.cursor() as cursor:
         with pytest.raises(manager.DataError) as exc:
             cursor.execute("SELECT 'Hello, world!' AS message")

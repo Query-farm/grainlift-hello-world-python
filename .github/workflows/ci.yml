@@ -40,12 +40,12 @@ jobs:
       - run: uv sync --locked --python '${{ matrix.python }}'
       - name: Check example style
         run: |
-          uv run --no-sync ruff check src tests
-          uv run --no-sync ruff format --check src tests
+          uv run --no-sync ruff check src tests examples
+          uv run --no-sync ruff format --check src tests examples
       - name: Type check (mypy)
-        run: uv run --no-sync mypy src tests
+        run: uv run --no-sync mypy src tests examples
       - name: Check docstrings (pydoclint)
-        run: uvx --python .venv/bin/python pydoclint --config pyproject.toml src/ tests/
+        run: uvx --python .venv/bin/python pydoclint --config pyproject.toml src/ tests/ examples/
       - name: Build the native ADBC driver
         working-directory: native-driver
         run: cargo build --locked -p adbc-driver-grainlift

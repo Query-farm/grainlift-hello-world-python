@@ -242,16 +242,17 @@ wheels = [
 ]
 
 [[package]]
-name = "grainlift-hello-world-python"
+name = "grainlift-hello-world"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "adbc-driver-manager" },
     { name = "grainlift-python", extra = ["granian"] },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "adbc-driver-manager" },
+    { name = "haybarn-cli" },
     { name = "mypy" },
     { name = "pyarrow-stubs" },
     { name = "pytest" },
@@ -259,13 +260,12 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "adbc-driver-manager", specifier = ">=1.7" },
-    { name = "grainlift-python", extras = ["granian"], git = "https://github.com/Query-farm/grainlift-python.git?rev=80837083ca90efb8e3be58e2c0b305463da24e10" },
-]
+requires-dist = [{ name = "grainlift-python", extras = ["granian"], git = "https://github.com/Query-farm/grainlift-python.git?rev=80837083ca90efb8e3be58e2c0b305463da24e10" }]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "adbc-driver-manager", specifier = ">=1.7" },
+    { name = "haybarn-cli", specifier = ">=1.5.5rc1" },
     { name = "mypy", specifier = ">=1.15" },
     { name = "pyarrow-stubs" },
     { name = "pytest", specifier = ">=8" },
@@ -354,6 +354,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/01/ee/02a2c011bdab74c6fb3c75474d40b3052059d95df7e73351460c8588d963/h11-0.16.0.tar.gz", hash = "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1", size = 101250, upload-time = "2025-04-24T03:35:25.427Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl", hash = "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86", size = 37515, upload-time = "2025-04-24T03:35:24.344Z" },
+]
+
+[[package]]
+name = "haybarn-cli"
+version = "1.5.5rc1"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/61/ae/2c8ab34fcb0355a60c15f4d2f76462ce11ebb9cf548e7aea82b0ad519961/haybarn_cli-1.5.5rc1-py3-none-macosx_11_0_arm64.whl", hash = "sha256:cd46f364493cf81515851984be1ba2810e1c5c326aede4e43f41831a38692be5", size = 17191611, upload-time = "2026-07-29T16:51:10.001Z" },
+    { url = "https://files.pythonhosted.org/packages/69/b3/4969559b28fd86d8fea034699724786748aca49a1e68af455e412eac6142/haybarn_cli-1.5.5rc1-py3-none-macosx_11_0_x86_64.whl", hash = "sha256:5f9c6c5a809cb43882b92b7be321ffd12fb13918ab7490951a8189b31d584793", size = 18956493, upload-time = "2026-07-29T16:51:12.712Z" },
+    { url = "https://files.pythonhosted.org/packages/a8/f8/2baf8337a8c133a967f5abadd898294795324dfe3aecd2713da5ea095e28/haybarn_cli-1.5.5rc1-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:d6d9e922dea588e525a772d1b5c75240aea981e1386c31dfb6fada64cd764fec", size = 20142570, upload-time = "2026-07-29T16:51:15.655Z" },
+    { url = "https://files.pythonhosted.org/packages/32/94/012f0d62ce118e54e1fc2ff774be5b5c0c1c867d7f0462dae153f7f2779a/haybarn_cli-1.5.5rc1-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:cbeaad18c0db7b5e8d9aa5fa2541d21bec6516435eed8e173afee2131c092057", size = 22139233, upload-time = "2026-07-29T16:51:18.634Z" },
+    { url = "https://files.pythonhosted.org/packages/25/a9/631e062035cf6a35b83bc64d5a445f73dbd30b027cae0d2eab735e208237/haybarn_cli-1.5.5rc1-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:17a164c8c0a4745b2581446ece6fcd253d440ab35b9f63649bfeb7ef5eeead9b", size = 21756641, upload-time = "2026-07-29T16:51:21.289Z" },
+    { url = "https://files.pythonhosted.org/packages/40/f3/09d335b4bc80285860d4e76bb4270f03b5221ca60e9566d04f64bd649c24/haybarn_cli-1.5.5rc1-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:1e4b889980d14a8c4c460a03741af02a42bea87ae5f4d92a8fa54cb7e23d9418", size = 23394583, upload-time = "2026-07-29T16:51:24.519Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/6b/ce73cfb33dc4bb934471c1903a6a1e1d2b2c3fec49d35e5547ddb8093bf0/haybarn_cli-1.5.5rc1-py3-none-win_amd64.whl", hash = "sha256:3e36fbf57a14ee3a90fcd9ffdf8aa08409d5feaa997ee65ff2e43ea199ce5e7a", size = 10198058, upload-time = "2026-07-29T16:51:27.096Z" },
 ]
 
 [[package]]

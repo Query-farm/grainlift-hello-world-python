@@ -1,6 +1,6 @@
-# grainlift-hello-world-python
+# grainlift-hello-world
 
-A complete ADBC service in about 100 lines of Python, built with
+A complete ADBC service in about 200 lines of Python, built with
 [grainlift-python](https://github.com/Query-farm/grainlift-python). Any ADBC
 application connects to it through the native Grainlift driver; the service
 itself needs no database, SQL engine or downstream driver.
@@ -8,34 +8,62 @@ itself needs no database, SQL engine or downstream driver.
 ## Quickstart
 
 Requires Python 3.13+, [uv](https://docs.astral.sh/uv/) and Rust 1.97+ (to
-build the native client driver once).
+build the native Grainlift ADBC driver once).
 
     git clone https://github.com/Query-farm/grainlift.git ../grainlift
     (cd ../grainlift && cargo build --locked -p adbc-driver-grainlift)
     uv sync --locked
 
-Start the service:
+Start the service (`python -m grainlift_hello_world` works too):
 
     uv run grainlift-hello-world
-
-In a second terminal, run the ADBC client:
-
-    export GRAINLIFT_DRIVER=../grainlift/target/debug/libadbc_driver_grainlift.dylib  # .so on Linux
-    uv run grainlift-hello-client
 
 No credentials are needed. The service is read-only, so it accepts anonymous
 clients (see [Authentication](#authentication)).
 
-Expected output:
+### Query it from SQL
 
-    {'message': ['Hello, world!']}
-    numbers(2500): [1024, 1024, 452] rows per Arrow batch
-    running_total(2500): last row {'number': 2499, 'total': 3123750}
-    Empty result: 0 rows, schema: number: int64
+[Haybarn](https://github.com/Query-farm-haybarn/haybarn), Query.Farm's DuckDB
+distribution, loads the Grainlift driver through the `adbc_scanner` extension.
+In a second terminal, run [`examples/query.sql`](examples/query.sql):
 
-## What's in the service
+    export GRAINLIFT_DRIVER=$PWD/../grainlift/target/debug/libadbc_driver_grainlift.dylib  # .so on Linux
+    uvx haybarn-cli < examples/query.sql
 
-All of it is in [`src/grainlift_hello_world/__init__.py`](src/grainlift_hello_world/__init__.py):
+The same script runs unchanged in the DuckDB CLI. It prints:
+
+    ┌───────────────┐
+    │    message    │
+    │    varchar    │
+    ├───────────────┤
+    │ Hello, world! │
+    └───────────────┘
+    ┌─────────┬────────────┐
+    │ numbers │   total    │
+    │  int64  │   int128   │
+    ├─────────┼────────────┤
+    │  100000 │ 4999950000 │
+    └─────────┴────────────┘
+    ...
+
+`adbc_scan` sends its quoted SQL to this service. The rows come back as an
+ordinary relation that you can join, aggregate or export locally.
+
+### Query it from Python
+
+[`examples/python_client.py`](examples/python_client.py) uses the standard ADBC
+driver manager:
+
+    uv run examples/python_client.py
+
+## What's in the package
+
+| Module | Contents |
+| --- | --- |
+| [`grainlift_hello_world.worker`](src/grainlift_hello_world/worker.py) | The service: `HelloWorker` → `HelloConnection` → `HelloStatement`, plus the two result styles below |
+| [`grainlift_hello_world.__main__`](src/grainlift_hello_world/__main__.py) | The `grainlift-hello-world` command |
+
+The service answers three queries:
 
 | Query | Result | Demonstrates |
 | --- | --- | --- |
@@ -46,6 +74,10 @@ All of it is in [`src/grainlift_hello_world/__init__.py`](src/grainlift_hello_wo
 `n` ranges from 0 to 100000. Anything else is an ADBC `INVALID_ARGUMENT` error
 with SQLSTATE 42000. The example matches these queries exactly rather than
 pretending to parse SQL.
+
+`HelloStatement` implements the ADBC statement lifecycle: set the SQL, then
+`prepare`, `execute_schema` and `execute`. Preparation matters because clients
+such as `adbc_scanner` prepare every query before running it.
 
 ### Generators vs. producers
 
@@ -69,7 +101,7 @@ keyset cursors or counters. Pick a generator when it isn't.
 ## Authentication
 
 Anonymous access is opt-in in grainlift-python. This example enables it because
-it only serves public, read-only data: its `main()` calls
+it only serves public, read-only data: its command calls
 `grainlift.cli.run(..., auth="anonymous")`. Requests without credentials act as
 the shared `anonymous` principal.
 
@@ -103,7 +135,7 @@ For mTLS, supply the server chain, key, client CA and authorized client URI SAN:
     export GRAINLIFT_ENDPOINT=tls+tcp://127.0.0.1:8443
     export GRAINLIFT_TLS_CA=server-ca.pem GRAINLIFT_TLS_CERT=client.pem GRAINLIFT_TLS_KEY=client-key.pem
     export GRAINLIFT_TLS_SERVER_NAME=localhost   # the DNS name in the server certificate
-    uv run grainlift-hello-client
+    uv run examples/python_client.py
 
 These hosts are for development and bind to loopback. For production
 deployment, limits and the security contract, see the SDK's
@@ -111,11 +143,13 @@ deployment, limits and the security contract, see the SDK's
 
 ## Development
 
-    uv run --no-sync ruff check src tests && uv run --no-sync ruff format --check src tests
-    uv run --no-sync mypy src tests
-    uvx pydoclint --config pyproject.toml src/ tests/
+    uv run --no-sync ruff check src tests examples && uv run --no-sync ruff format --check src tests examples
+    uv run --no-sync mypy src tests examples
+    uvx pydoclint --config pyproject.toml src/ tests/ examples/
     GRAINLIFT_DRIVER=../grainlift/target/debug/libadbc_driver_grainlift.dylib uv run --no-sync pytest
 
-Native integration tests skip when `GRAINLIFT_DRIVER` is unset. CI builds a
+Native integration tests skip when `GRAINLIFT_DRIVER` is unset. They include
+running `examples/query.sql` in the Haybarn CLI (a dev dependency), which
+downloads the `adbc_scanner` extension on first use. CI builds a
 pinned native-driver revision and runs everything on Linux and macOS with
 Python 3.13 and 3.14. See [VALIDATION.md](VALIDATION.md) for a recorded local run.
