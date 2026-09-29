@@ -1,7 +1,7 @@
 [project]
 name = "grainlift-hello-world"
 version = "0.1.0"
-description = "A minimal ADBC service written in Python with grainlift-python"
+description = "A minimal ADBC service written in Python with the Grainlift SDK"
 requires-python = ">=3.13"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
@@ -20,12 +20,12 @@ classifiers = [
     "Topic :: Database",
     "Typing :: Typed",
 ]
-dependencies = ["grainlift-python[granian]"]
+dependencies = ["grainlift[granian]>=0.2.1"]
 
 [project.urls]
 Repository = "https://github.com/Query-farm/grainlift-hello-world-python"
 Issues = "https://github.com/Query-farm/grainlift-hello-world-python/issues"
-"Grainlift SDK" = "https://github.com/Query-farm/grainlift-python"
+"Grainlift SDK" = "https://pypi.org/project/grainlift/"
 
 [project.scripts]
 grainlift-hello-world = "grainlift_hello_world.__main__:main"
@@ -58,8 +58,6 @@ dev = [
     "haybarn-cli>=1.5.5rc1",
 ]
 
-[tool.uv.sources]
-grainlift-python = { git = "https://github.com/Query-farm/grainlift-python.git", rev = "80837083ca90efb8e3be58e2c0b305463da24e10" }
 
 [tool.ruff]
 line-length = 120

@@ -1,7 +1,7 @@
 # grainlift-hello-world
 
 A complete ADBC service in about 200 lines of Python, built with
-[grainlift-python](https://github.com/Query-farm/grainlift-python). Any ADBC
+the [Grainlift SDK](https://pypi.org/project/grainlift/) (`pip install grainlift`). Any ADBC
 application connects to it through the native Grainlift driver; the service
 itself needs no database, SQL engine or downstream driver.
 
@@ -100,7 +100,7 @@ keyset cursors or counters. Pick a generator when it isn't.
 
 ## Authentication
 
-Anonymous access is opt-in in grainlift-python. This example enables it because
+Anonymous access is opt-in in the Grainlift SDK. This example enables it because
 it only serves public, read-only data: its command calls
 `grainlift.cli.run(..., auth="anonymous")`. Requests without credentials act as
 the shared `anonymous` principal.
