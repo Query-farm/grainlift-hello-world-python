@@ -1,7 +1,7 @@
--- Query the hello-world service from DuckDB through the adbc_scanner extension.
+-- Query the hello-world service from SQL through the adbc_scanner extension.
 --
 --   export GRAINLIFT_DRIVER=/absolute/path/to/libadbc_driver_grainlift.dylib   # .so on Linux
---   duckdb < examples/query.sql
+--   uvx haybarn-cli < examples/query.sql      # Haybarn; the DuckDB CLI also works
 --
 -- The service must be running (grainlift-hello-world). It accepts anonymous
 -- clients; for a token-protected service add 'grainlift.auth.bearer_token'.
