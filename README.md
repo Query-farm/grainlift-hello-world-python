@@ -125,6 +125,13 @@ available for any worker as `grainlift serve module:Factory`.
 - `--host mtls`: verified TCP/mTLS; client certificates identify callers.
 - `--port`: listening port (default 8080). Point the client at a different
   port with `GRAINLIFT_ENDPOINT`.
+- `--storage-endpoint`, `--storage-bucket` (with `--storage-region` and
+  `--storage-prefix`): send large requests and results through an S3-compatible
+  bucket (AWS S3, Cloudflare R2, MinIO) over HTTP. Clients upload requests over
+  the request limit to presigned URLs and fetch large results from the bucket.
+  Credentials come from `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`; install
+  the SDK's storage extra (`uv run --with 'grainlift[storage]' grainlift-hello-world ...`).
+  The hello-world results are small, so this matters for your own workers.
 
 For mTLS, supply the server chain, key, client CA and authorized client URI SAN:
 

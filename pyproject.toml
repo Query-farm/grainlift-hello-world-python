@@ -20,7 +20,7 @@ classifiers = [
     "Topic :: Database",
     "Typing :: Typed",
 ]
-dependencies = ["grainlift[granian]>=0.2.1"]
+dependencies = ["grainlift[granian]>=0.3.1"]
 
 [project.urls]
 Repository = "https://github.com/Query-farm/grainlift-hello-world-python"

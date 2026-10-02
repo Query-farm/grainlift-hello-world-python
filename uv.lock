@@ -243,15 +243,15 @@ wheels = [
 
 [[package]]
 name = "grainlift"
-version = "0.2.1"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyarrow" },
     { name = "vgi-rpc", extra = ["http"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2a/79/999a82a2ffefcf2a652ba244b98a1ec62938b9434f41d75b6c56aeb7d8cf/grainlift-0.2.1.tar.gz", hash = "sha256:8b2226673db85926e1da154f7ef6d6f8d0582bb3a618ca2ad96764ce7db36ad9", size = 107510, upload-time = "2026-09-29T16:37:48.664Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/f7/31bb7ccedcf11151dde9bd741e91daf2289a7450064c98f0b915eec5e922/grainlift-0.3.1.tar.gz", hash = "sha256:45d94fa043deac1aa7e0db22e94df5a48cd39c587afa42af2d43b2f5bf266884", size = 117307, upload-time = "2026-10-02T16:08:08.395Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/54/73/5f4017623275cc0627380a715d85ced67bb5086ce1bc81396bd56de192a3/grainlift-0.2.1-py3-none-any.whl", hash = "sha256:4e0edd56235bec0fb40c31488cecf87893a6b7ce7c79ca1a23aa9d158f870303", size = 63416, upload-time = "2026-09-29T16:37:46.993Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/8d/ec34573607023a3f563cc4705a803b85f18aa73b62325d388c97c5913c92/grainlift-0.3.1-py3-none-any.whl", hash = "sha256:eebf1ebb4c8c725d27b25a6ffafcb5c23d8831a38fcc4a3f81151422144639f0", size = 69855, upload-time = "2026-10-02T16:08:06.845Z" },
 ]
 
 [package.optional-dependencies]
@@ -278,7 +278,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "grainlift", extras = ["granian"], specifier = ">=0.2.1" }]
+requires-dist = [{ name = "grainlift", extras = ["granian"], specifier = ">=0.3.1" }]
 
 [package.metadata.requires-dev]
 dev = [
